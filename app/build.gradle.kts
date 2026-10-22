@@ -8,12 +8,15 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// TMDB key lives in local.properties (not committed): TMDB_API_KEY=xxxxxxxx
+// TMDB key: local.properties (TMDB_API_KEY=...) for local builds,
+// or the TMDB_API_KEY repository secret in GitHub Actions. Never committed.
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
-val tmdbApiKey: String = localProps.getProperty("TMDB_API_KEY") ?: ""
+val tmdbApiKey: String = localProps.getProperty("TMDB_API_KEY")
+    ?: System.getenv("TMDB_API_KEY")
+    ?: ""
 
 android {
     namespace = "com.matanjerbi.cinematheque"
@@ -29,7 +32,20 @@ android {
         buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
     }
 
+    // Fixed debug key, so every new build installs as an update and keeps your data.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
