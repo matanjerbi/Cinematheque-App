@@ -40,8 +40,8 @@ class SearchController(private val repository: TitleRepository, scope: Coroutine
         .distinctUntilChanged()
         .flatMapLatest { q -> refreshKey.map { q } }
         .flatMapLatest { q ->
-            if (q.length < TitleRepository.MIN_QUERY_LENGTH) flowOf(SearchState.Idle)
-            else flow {
+            if (q.length < TitleRepository.MIN_QUERY_LENGTH) flowOf<SearchState>(SearchState.Idle)
+            else flow<SearchState> {
                 emit(SearchState.Loading)
                 emit(
                     repository.search(q).fold(
