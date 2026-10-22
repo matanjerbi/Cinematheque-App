@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Film reel: outer ring with five holes, inside the 72dp adaptive-icon safe zone -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/marquee"
+        android:fillType="evenOdd"
+        android:pathData="M54,28a26,26 0,1 1,0 52a26,26 0,1 1,0 -52z
+            M54,35a5,5 0,1 0,0 10a5,5 0,1 0,0 -10z
+            M68.3,45.4a5,5 0,1 0,0 10a5,5 0,1 0,0 -10z
+            M62.8,62.2a5,5 0,1 0,0 10a5,5 0,1 0,0 -10z
+            M45.2,62.2a5,5 0,1 0,0 10a5,5 0,1 0,0 -10z
+            M39.7,45.4a5,5 0,1 0,0 10a5,5 0,1 0,0 -10z
+            M54,51.5a2.5,2.5 0,1 0,0 5a2.5,2.5 0,1 0,0 -5z" />
+</vector>
