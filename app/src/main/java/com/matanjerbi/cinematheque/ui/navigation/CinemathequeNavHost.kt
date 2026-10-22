@@ -1,5 +1,7 @@
 package com.matanjerbi.cinematheque.ui.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
@@ -49,7 +51,10 @@ fun CinemathequeNavHost() {
     val destination = backStack?.destination
     val onTab = tabs.any { tab -> destination?.hasRoute(tab.route::class) == true }
 
+    // Outer scaffold only reserves room for the bottom bar; each screen's own
+    // Scaffold handles the status bar, so insets aren't applied twice.
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (onTab) {
                 NavigationBar {
@@ -74,7 +79,7 @@ fun CinemathequeNavHost() {
         NavHost(
             navController = nav,
             startDestination = DiaryRoute,
-            modifier = Modifier.padding(padding),
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
             composable<DiaryRoute> {
                 DiaryScreen(
@@ -106,7 +111,7 @@ fun CinemathequeNavHost() {
                     onWatched = { titleId ->
                         nav.navigate(EntryEditorRoute(titleId)) { popUpTo<SearchRoute> { inclusive = true } }
                     },
-                    onDone = { nav.popBackStack() },
+                    onBack = { nav.popBackStack() },
                 )
             }
             composable<PastWatchesRoute> {
