@@ -8,11 +8,12 @@ import kotlinx.serialization.Serializable
 @Serializable data object DiaryRoute
 @Serializable data object WatchlistRoute
 @Serializable data object CollectionsRoute
+@Serializable data object AiringRoute
 @Serializable data object StatsRoute
 
 /** What the search screen does with a picked result. */
 @Serializable
-enum class SearchPurpose { WATCHED, WATCHLIST, ADD_TO_COLLECTION }
+enum class SearchPurpose { WATCHED, WATCHLIST, ADD_TO_COLLECTION, FOLLOW }
 
 @Serializable
 data class SearchRoute(
@@ -27,7 +28,8 @@ data class SearchRoute(
 /** New watch when entryId == 0, otherwise edit an existing one. */
 @Serializable data class EntryEditorRoute(val titleId: Long, val entryId: Long = 0L)
 
-@Serializable data class TitleDetailRoute(val titleId: Long)
+/** openFollow: open the episode-tracking form right away (coming from the airing tab). */
+@Serializable data class TitleDetailRoute(val titleId: Long, val openFollow: Boolean = false)
 
 @Serializable data class CollectionDetailRoute(val collectionId: Long)
 

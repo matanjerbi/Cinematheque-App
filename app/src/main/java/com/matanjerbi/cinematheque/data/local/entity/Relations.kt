@@ -50,3 +50,9 @@ data class CollectionItemRow(
     /** Computed in the query: has this title been watched at least once. */
     val watched: Boolean,
 )
+
+data class FollowedShowWithTitle(
+    @Embedded val show: FollowedShowEntity,
+    @Relation(parentColumn = "titleId", entityColumn = "id")
+    val title: TitleEntity,
+)

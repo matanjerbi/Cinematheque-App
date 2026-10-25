@@ -184,3 +184,33 @@ data class WatchlistItemEntity(
     val note: String = "",
     val recommendedBy: String = "",
 )
+
+/**
+ * A series that is airing now and that the user follows episode by episode.
+ *
+ * The aired count is anchored: [airedCount] episodes were out at [airedCountAsOf],
+ * and every scheduled slot since then adds one (capped by [seasonEpisodeCount]).
+ * That way the count moves forward on its own, offline, with no daily job.
+ */
+@Entity(
+    tableName = "followed_shows",
+    foreignKeys = [ForeignKey(
+        entity = TitleEntity::class, parentColumns = ["id"], childColumns = ["titleId"],
+        onDelete = ForeignKey.CASCADE
+    )]
+)
+data class FollowedShowEntity(
+    @PrimaryKey val titleId: Long,
+    /** Bit per weekday, Sunday = bit 0 … Saturday = bit 6. See [com.matanjerbi.cinematheque.airing.AirSchedule]. */
+    val airDays: Int,
+    /** Local (phone) time of the airing, minutes since midnight. */
+    val airMinuteOfDay: Int,
+    val remindersOn: Boolean = true,
+    val season: Int = 1,
+    val airedCount: Int = 0,
+    val airedCountAsOf: Long = System.currentTimeMillis(),
+    /** Episodes in the current season when known (from TMDB or typed in); null = open-ended. */
+    val seasonEpisodeCount: Int? = null,
+    val tmdbSyncedAt: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+)

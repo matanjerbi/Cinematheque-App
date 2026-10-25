@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.matanjerbi.cinematheque.AppContainer
+import com.matanjerbi.cinematheque.data.local.entity.MediaType
 import com.matanjerbi.cinematheque.data.local.entity.WatchlistItemEntity
 import com.matanjerbi.cinematheque.data.repository.SearchResult
 import com.matanjerbi.cinematheque.ui.common.BackButton
@@ -76,7 +77,7 @@ class SearchViewModel(
             container.titleRepository.ensureSaved(result.tmdbId, result.type)
                 .onSuccess { titleId ->
                     when (purpose) {
-                        SearchPurpose.WATCHED -> openEntryFor.emit(titleId)
+                        SearchPurpose.WATCHED, SearchPurpose.FOLLOW -> openEntryFor.emit(titleId)
                         SearchPurpose.WATCHLIST -> {
                             container.database.watchlistDao().upsert(WatchlistItemEntity(titleId))
                             messages.emit("${result.title} נוסף לרשימת הצפייה")
@@ -119,11 +120,19 @@ fun SearchScreen(
         SearchPurpose.WATCHED -> "מה ראית?"
         SearchPurpose.WATCHLIST -> "הוספה לרשימת הצפייה"
         SearchPurpose.ADD_TO_COLLECTION -> "הוספה לאוסף"
+        SearchPurpose.FOLLOW -> "איזו סדרה אתה רואה?"
     }
     val actionLabel = when (purpose) {
         SearchPurpose.WATCHED -> "צפיתי"
         SearchPurpose.WATCHLIST -> "לרשימה"
         SearchPurpose.ADD_TO_COLLECTION -> "הוסף"
+        SearchPurpose.FOLLOW -> "עקוב"
+    }
+    // Following is for series only.
+    val shown = state.let { st ->
+        if (purpose == SearchPurpose.FOLLOW && st is SearchState.Results) {
+            SearchState.Results(st.items.filter { it.type == MediaType.TV })
+        } else st
     }
 
     Scaffold(
@@ -143,7 +152,7 @@ fun SearchScreen(
                     .focusRequester(focus),
             )
             SearchResultsList(
-                state = state,
+                state = shown,
                 busyId = busyId,
                 actionLabel = actionLabel,
                 onPick = vm::pick,

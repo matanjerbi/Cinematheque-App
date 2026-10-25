@@ -73,6 +73,10 @@ data class DetailsDto(
     @SerialName("first_air_date") val firstAirDate: String? = null,
     @SerialName("number_of_seasons") val numberOfSeasons: Int? = null,
     @SerialName("created_by") val createdBy: List<CreatorDto> = emptyList(),
+    @SerialName("last_episode_to_air") val lastEpisodeToAir: EpisodeRefDto? = null,
+    @SerialName("next_episode_to_air") val nextEpisodeToAir: EpisodeRefDto? = null,
+    val seasons: List<SeasonSummaryDto> = emptyList(),
+    val status: String? = null,
     // shared
     @SerialName("original_language") val originalLanguage: String? = null,
     val overview: String? = null,
@@ -80,6 +84,19 @@ data class DetailsDto(
     val genres: List<GenreDto> = emptyList(),
     @SerialName("vote_average") val voteAverage: Double? = null,
     val credits: CreditsDto? = null,
+)
+
+@Serializable
+data class EpisodeRefDto(
+    @SerialName("air_date") val airDate: String? = null,
+    @SerialName("season_number") val seasonNumber: Int = 0,
+    @SerialName("episode_number") val episodeNumber: Int = 0,
+)
+
+@Serializable
+data class SeasonSummaryDto(
+    @SerialName("season_number") val seasonNumber: Int = 0,
+    @SerialName("episode_count") val episodeCount: Int = 0,
 )
 
 /** "2014-11-05" → 2014; TMDB sends "" for unknown dates. */

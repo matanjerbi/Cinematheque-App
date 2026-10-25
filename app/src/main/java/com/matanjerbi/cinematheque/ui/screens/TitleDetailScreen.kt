@@ -47,7 +47,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.matanjerbi.cinematheque.AppContainer
+import com.matanjerbi.cinematheque.airing.AiringSuggestion
+import com.matanjerbi.cinematheque.data.local.entity.FollowedShowEntity
+import com.matanjerbi.cinematheque.data.local.entity.MediaType
 import com.matanjerbi.cinematheque.data.local.entity.CollectionEntity
 import com.matanjerbi.cinematheque.data.local.entity.CollectionSummary
 import com.matanjerbi.cinematheque.data.local.entity.EntryWithDetails
@@ -86,6 +90,39 @@ class TitleDetailViewModel(private val container: AppContainer, private val titl
     val refreshing = MutableStateFlow(false)
     val messages = MutableSharedFlow<String>(extraBufferCapacity = 2)
 
+    // Airing now / episode tracking (series only)
+    val followed: StateFlow<FollowedShowEntity?> = db.followedShowDao().observe(titleId).state(null)
+    val suggestion = MutableStateFlow<AiringSuggestion?>(null)
+    val loadingSuggestion = MutableStateFlow(false)
+    val suggestionError = MutableStateFlow<String?>(null)
+
+    fun fetchSuggestion() = viewModelScope.launch {
+        if (loadingSuggestion.value) return@launch
+        loadingSuggestion.value = true
+        suggestionError.value = null
+        container.followRepository.suggest(titleId)
+            .onSuccess { suggestion.value = it }
+            .onFailure { suggestionError.value = it.toUserMessage() }
+        loadingSuggestion.value = false
+    }
+
+    fun clearSuggestion() {
+        suggestion.value = null
+        suggestionError.value = null
+    }
+
+    fun saveFollow(show: FollowedShowEntity) = viewModelScope.launch {
+        container.followRepository.save(show)
+        messages.emit(if (show.remindersOn) "נשמר. תקבל תזכורת כשיוצא פרק" else "נשמר")
+    }
+
+    fun setReminders(on: Boolean) = viewModelScope.launch { container.followRepository.setReminders(titleId, on) }
+
+    fun unfollow() = viewModelScope.launch {
+        container.followRepository.unfollow(titleId)
+        messages.emit("הפסקת לעקוב")
+    }
+
     fun toggleWatchlist() = viewModelScope.launch {
         if (inWatchlist.value) db.watchlistDao().remove(titleId)
         else db.watchlistDao().upsert(WatchlistItemEntity(titleId))
@@ -113,6 +150,7 @@ class TitleDetailViewModel(private val container: AppContainer, private val titl
 @Composable
 fun TitleDetailScreen(
     titleId: Long,
+    openFollow: Boolean = false,
     onWatchAgain: () -> Unit,
     onOpenEntry: (Long) -> Unit,
     onBack: () -> Unit,
@@ -127,6 +165,13 @@ fun TitleDetailScreen(
     val memberOf by vm.memberOf.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     var showCollections by remember { mutableStateOf(false) }
+    val followed by vm.followed.collectAsStateWithLifecycle()
+    val suggestion by vm.suggestion.collectAsStateWithLifecycle()
+    val loadingSuggestion by vm.loadingSuggestion.collectAsStateWithLifecycle()
+    val suggestionError by vm.suggestionError.collectAsStateWithLifecycle()
+    var showFollow by rememberSaveable { mutableStateOf(openFollow) }
+    // A brand-new follow starts prefilled from TMDB.
+    LaunchedEffect(showFollow) { if (showFollow && vm.followed.value == null) vm.fetchSuggestion() }
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { vm.messages.collect { snackbar.showSnackbar(it) } }
@@ -181,6 +226,15 @@ fun TitleDetailScreen(
                 }
             }
 
+            if (t.type == MediaType.TV) {
+                AiringSection(
+                    show = followed,
+                    onFollow = { showFollow = true },
+                    onEdit = { showFollow = true },
+                    onReminders = { vm.setReminders(it) },
+                )
+            }
+
             if (t.overview.isNotBlank()) {
                 SectionHeader("תקציר")
                 Text(t.overview, style = MaterialTheme.typography.bodyLarge)
@@ -220,6 +274,21 @@ fun TitleDetailScreen(
                 modifier = Modifier.padding(vertical = 24.dp),
             )
         }
+    }
+
+    if (showFollow && details?.title?.type == MediaType.TV) {
+        val close = { showFollow = false; vm.clearSuggestion() }
+        FollowDialog(
+            existing = followed,
+            titleId = titleId,
+            suggestion = suggestion,
+            loadingSuggestion = loadingSuggestion,
+            suggestionError = suggestionError,
+            onFetchSuggestion = { vm.fetchSuggestion() },
+            onSave = { vm.saveFollow(it); close() },
+            onUnfollow = { vm.unfollow(); close() },
+            onDismiss = close,
+        )
     }
 
     if (showCollections) {
