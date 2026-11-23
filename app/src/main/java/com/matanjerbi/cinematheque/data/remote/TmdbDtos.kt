@@ -24,6 +24,7 @@ data class SearchItemDto(
     @SerialName("poster_path") val posterPath: String? = null,
     @SerialName("vote_average") val voteAverage: Double? = null,
     val popularity: Double? = null,
+    @SerialName("genre_ids") val genreIds: List<Int> = emptyList(),
 )
 
 @Serializable
@@ -84,11 +85,51 @@ data class DetailsDto(
     val genres: List<GenreDto> = emptyList(),
     @SerialName("vote_average") val voteAverage: Double? = null,
     val credits: CreditsDto? = null,
+    // tv, for the "new in Israel" overview
+    val networks: List<NetworkDto> = emptyList(),
+    @SerialName("watch/providers") val watchProviders: WatchProvidersDto? = null,
+)
+
+@Serializable
+data class NetworkDto(val id: Int, val name: String)
+
+@Serializable
+data class WatchProvidersDto(val results: Map<String, RegionProvidersDto> = emptyMap())
+
+@Serializable
+data class RegionProvidersDto(
+    val flatrate: List<ProviderDto> = emptyList(),
+    val free: List<ProviderDto> = emptyList(),
+    val ads: List<ProviderDto> = emptyList(),
+)
+
+@Serializable
+data class ProviderDto(@SerialName("provider_name") val name: String)
+
+@Serializable
+data class DiscoverTvResponse(
+    val results: List<DiscoverTvDto> = emptyList(),
+    @SerialName("total_pages") val totalPages: Int = 1,
+)
+
+@Serializable
+data class DiscoverTvDto(
+    val id: Int,
+    val name: String? = null,
+    @SerialName("original_name") val originalName: String? = null,
+    val overview: String? = null,
+    @SerialName("first_air_date") val firstAirDate: String? = null,
+    @SerialName("poster_path") val posterPath: String? = null,
+    @SerialName("vote_average") val voteAverage: Double? = null,
+    @SerialName("vote_count") val voteCount: Int? = null,
+    val popularity: Double? = null,
+    @SerialName("genre_ids") val genreIds: List<Int> = emptyList(),
 )
 
 @Serializable
 data class EpisodeRefDto(
     @SerialName("air_date") val airDate: String? = null,
+    val name: String? = null,
     @SerialName("season_number") val seasonNumber: Int = 0,
     @SerialName("episode_number") val episodeNumber: Int = 0,
 )

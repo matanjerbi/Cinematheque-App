@@ -34,3 +34,6 @@ data class SearchRoute(
 @Serializable data class CollectionDetailRoute(val collectionId: Long)
 
 @Serializable data object TagsRoute
+
+/** Israeli series airing around now, to pick what to start watching. */
+@Serializable data object IsraelAiringRoute

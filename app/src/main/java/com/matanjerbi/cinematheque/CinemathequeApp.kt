@@ -6,6 +6,7 @@ import com.matanjerbi.cinematheque.airing.EpisodeReminders
 import com.matanjerbi.cinematheque.airing.FollowRepository
 import com.matanjerbi.cinematheque.data.local.CinemathequeDatabase
 import com.matanjerbi.cinematheque.data.remote.TmdbClient
+import com.matanjerbi.cinematheque.data.repository.IsraelAiringRepository
 import com.matanjerbi.cinematheque.data.repository.PosterStore
 import com.matanjerbi.cinematheque.data.repository.TitleRepository
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +34,7 @@ class AppContainer(context: Context) {
     private val posterStore = PosterStore(context, tmdb.httpClient)
 
     val titleRepository = TitleRepository(tmdb.api, database, posterStore)
+    val israelAiringRepository = IsraelAiringRepository(tmdb.api)
 
     /** For work that should outlive a screen (re-arming alarms, background sync). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

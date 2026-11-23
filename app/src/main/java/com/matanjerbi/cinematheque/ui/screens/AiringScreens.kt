@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Schedule
@@ -176,6 +177,7 @@ class AiringViewModel(private val container: AppContainer) : ViewModel() {
 fun AiringScreen(
     onAdd: () -> Unit,
     onOpenTitle: (Long) -> Unit,
+    onDiscoverIsrael: () -> Unit,
 ) {
     val container = rememberContainer()
     val context = LocalContext.current
@@ -197,7 +199,17 @@ fun AiringScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("משודרות עכשיו") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("משודרות עכשיו") },
+                actions = {
+                    TextButton(onClick = onDiscoverIsrael) {
+                        Icon(Icons.Outlined.Explore, null, Modifier.size(18.dp))
+                        Text("  חדש בישראל")
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(onClick = onAdd, icon = { Icon(Icons.Outlined.Add, null) }, text = { Text("סדרה") })
         },
@@ -208,7 +220,12 @@ fun AiringScreen(
                 "אין סדרות במעקב",
                 "סדרה שאתה צופה בה עכשיו? סמן באילו ימים ובאיזו שעה היא משודרת, ותקבל תזכורת על כל פרק חדש ותראה כמה פרקים כבר יצאו.",
                 Modifier.padding(padding),
-            ) { Button(onClick = onAdd) { Text("הוסף סדרה") } }
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onAdd) { Text("הוסף סדרה") }
+                    OutlinedButton(onClick = onDiscoverIsrael) { Text("מה חדש בישראל?") }
+                }
+            }
             return@Scaffold
         }
         val sorted = list.sortedWith(

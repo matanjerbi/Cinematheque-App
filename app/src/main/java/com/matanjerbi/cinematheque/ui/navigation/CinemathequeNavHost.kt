@@ -31,6 +31,7 @@ import com.matanjerbi.cinematheque.ui.screens.CollectionDetailScreen
 import com.matanjerbi.cinematheque.ui.screens.CollectionsScreen
 import com.matanjerbi.cinematheque.ui.screens.DiaryScreen
 import com.matanjerbi.cinematheque.ui.screens.EntryEditorScreen
+import com.matanjerbi.cinematheque.ui.screens.IsraelAiringScreen
 import com.matanjerbi.cinematheque.ui.screens.PastWatchesScreen
 import com.matanjerbi.cinematheque.ui.screens.SearchScreen
 import com.matanjerbi.cinematheque.ui.screens.StatsScreen
@@ -112,6 +113,14 @@ fun CinemathequeNavHost(openTitleId: Long? = null, onOpenedTitle: () -> Unit = {
                 AiringScreen(
                     onAdd = { nav.navigate(SearchRoute(SearchPurpose.FOLLOW)) },
                     onOpenTitle = { nav.navigate(TitleDetailRoute(it)) },
+                    onDiscoverIsrael = { nav.navigate(IsraelAiringRoute) },
+                )
+            }
+            composable<IsraelAiringRoute> {
+                IsraelAiringScreen(
+                    onBack = { nav.popBackStack() },
+                    onOpenTitle = { nav.navigate(TitleDetailRoute(it)) },
+                    onStartWatching = { nav.navigate(TitleDetailRoute(it, openFollow = true)) },
                 )
             }
             composable<CollectionsRoute> {

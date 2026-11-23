@@ -45,6 +45,18 @@ abstract class TitleDao {
     @Query("SELECT * FROM titles WHERE tmdbId IN (:tmdbIds)")
     abstract suspend fun findAllByTmdbIds(tmdbIds: List<Int>): List<TitleEntity>
 
+    /** Where each cached series stands in the library; marks cards in the "new in Israel" list. */
+    @Query(
+        """
+        SELECT t.tmdbId AS tmdbId, t.id AS titleId,
+            EXISTS(SELECT 1 FROM watchlist w WHERE w.titleId = t.id) AS inWatchlist,
+            EXISTS(SELECT 1 FROM followed_shows f WHERE f.titleId = t.id) AS following,
+            EXISTS(SELECT 1 FROM watch_entries e WHERE e.titleId = t.id) AS watched
+        FROM titles t WHERE t.type = 'TV'
+        """
+    )
+    abstract fun observeSeriesLibraryStatus(): Flow<List<SeriesLibraryStatus>>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     protected abstract suspend fun insertTitle(title: TitleEntity): Long
 
@@ -99,3 +111,11 @@ abstract class TitleDao {
 
 /** A credit to attach to a title being saved (the title id isn't known yet). */
 data class CreditInput(val personId: Int, val role: PersonRole, val sortOrder: Int)
+
+data class SeriesLibraryStatus(
+    val tmdbId: Int,
+    val titleId: Long,
+    val inWatchlist: Boolean,
+    val following: Boolean,
+    val watched: Boolean,
+)

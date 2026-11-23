@@ -35,6 +35,18 @@ interface TmdbApi {
         @Query("language") language: String = TmdbClient.LANGUAGE,
         @Query("append_to_response") append: String? = "credits",
     ): DetailsDto
+
+    /** Series by origin country with an episode airing inside [airDateFrom, airDateTo] (yyyy-MM-dd). */
+    @GET("discover/tv")
+    suspend fun discoverTv(
+        @Query("with_origin_country") originCountry: String,
+        @Query("air_date.gte") airDateFrom: String,
+        @Query("air_date.lte") airDateTo: String,
+        @Query("sort_by") sortBy: String = "popularity.desc",
+        @Query("language") language: String = TmdbClient.LANGUAGE,
+        @Query("include_adult") includeAdult: Boolean = false,
+        @Query("page") page: Int = 1,
+    ): DiscoverTvResponse
 }
 
 class TmdbClient private constructor(val api: TmdbApi, val httpClient: OkHttpClient) {
