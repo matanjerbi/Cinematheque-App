@@ -40,7 +40,7 @@ import com.matanjerbi.cinematheque.data.local.entity.WatchlistItemEntity
         WatchlistItemEntity::class,
         FollowedShowEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -84,6 +84,13 @@ abstract class CinemathequeDatabase : RoomDatabase() {
             }
         }
 
+        /** v3: a season start date, so a season that hasn't premiered yet isn't counted. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `followed_shows` ADD COLUMN `seasonStart` INTEGER")
+            }
+        }
+
         fun build(context: Context): CinemathequeDatabase =
             Room.databaseBuilder(context, CinemathequeDatabase::class.java, "cinematheque.db")
                 .addCallback(object : Callback() {
@@ -93,7 +100,7 @@ abstract class CinemathequeDatabase : RoomDatabase() {
                         }
                     }
                 })
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

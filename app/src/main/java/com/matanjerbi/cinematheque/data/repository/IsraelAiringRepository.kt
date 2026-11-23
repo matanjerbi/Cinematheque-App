@@ -171,12 +171,16 @@ internal fun kindOf(firstAirDate: LocalDate?, season: Int?, next: EpisodeInfo?, 
 private fun whereToWatch(dto: DetailsDto): List<String> {
     val il = dto.watchProviders?.results?.get("IL")
     val providers = il?.let { it.flatrate + it.free + it.ads }.orEmpty().map { it.name }
-    return (dto.networks.map { it.name } + providers)
+    val networks = dto.networks.map { it.name }.filterNot { it.trim().lowercase() in DEFUNCT_CHANNELS }
+    return (networks + providers)
         .map { it.trim() }
         .filter { it.isNotEmpty() }
         .distinctBy { it.lowercase() }
         .take(4)
 }
+
+/** Israeli channels that no longer broadcast; old series still list them in TMDB. */
+private val DEFUNCT_CHANNELS = setOf("channel 2", "channel 10", "channel 1", "arutz 2", "ערוץ 2", "ערוץ 10", "ערוץ 1", "iba")
 
 private fun EpisodeRefDto.toInfo() = EpisodeInfo(seasonNumber, episodeNumber, airDate.toDateOrNull(), name?.takeIf { it.isNotBlank() })
 

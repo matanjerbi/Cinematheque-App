@@ -213,4 +213,9 @@ data class FollowedShowEntity(
     val seasonEpisodeCount: Int? = null,
     val tmdbSyncedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    /**
+     * First day of the current season, when it hasn't started yet (or started recently).
+     * No episode is counted, and no reminder fires, before this date. null = already running.
+     */
+    val seasonStart: LocalDate? = null,
 )

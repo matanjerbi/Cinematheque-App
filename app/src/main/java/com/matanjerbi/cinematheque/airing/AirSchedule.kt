@@ -61,9 +61,21 @@ data class AirSchedule(val days: Set<DayOfWeek>, val time: LocalTime) {
 
 val FollowedShowEntity.schedule: AirSchedule get() = AirSchedule.of(airDays, airMinuteOfDay)
 
-/** Episodes out now: the anchored count plus every slot since, capped at the season length. */
+/** Start of the season's first day, or null when the season is already running. */
+fun FollowedShowEntity.seasonStartAt(zone: ZoneId): ZonedDateTime? = seasonStart?.atStartOfDay(zone)
+
+/** True while the season's first episode is still ahead. */
+fun FollowedShowEntity.notStartedAt(now: ZonedDateTime): Boolean =
+    seasonStartAt(now.zone)?.let { now.isBefore(it) } ?: false
+
+/**
+ * Episodes out now: the anchored count plus every slot since, capped at the season length.
+ * Slots before [FollowedShowEntity.seasonStart] don't count: the season hasn't begun.
+ */
 fun FollowedShowEntity.airedAt(now: ZonedDateTime): Int {
-    val since = ZonedDateTime.ofInstant(Instant.ofEpochMilli(airedCountAsOf), now.zone)
+    val anchor = ZonedDateTime.ofInstant(Instant.ofEpochMilli(airedCountAsOf), now.zone)
+    val start = seasonStartAt(now.zone)
+    val since = if (start != null && start.isAfter(anchor)) start else anchor
     val total = airedCount + schedule.countBetween(since, now)
     return seasonEpisodeCount?.let { minOf(total, it) } ?: total
 }
@@ -72,7 +84,11 @@ fun FollowedShowEntity.seasonFinishedAt(now: ZonedDateTime): Boolean =
     seasonEpisodeCount?.let { airedAt(now) >= it } ?: false
 
 /** When the next episode comes out, or null if the season is done or no day is set. */
-fun FollowedShowEntity.nextAiringAfter(now: ZonedDateTime): ZonedDateTime? =
-    if (seasonFinishedAt(now)) null else schedule.nextAfter(now)
+fun FollowedShowEntity.nextAiringAfter(now: ZonedDateTime): ZonedDateTime? {
+    if (seasonFinishedAt(now)) return null
+    // Before the premiere, the next slot is the first one on or after the start day.
+    val from = seasonStartAt(now.zone)?.takeIf { it.isAfter(now) }?.minusNanos(1) ?: now
+    return schedule.nextAfter(from)
+}
 
 fun nowHere(): ZonedDateTime = ZonedDateTime.now(ZoneId.systemDefault())

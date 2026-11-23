@@ -17,6 +17,8 @@ data class AiringSuggestion(
     /** Weekday of the next (or last) original air date. US dates, so it can be a day off here. */
     val airDay: DayOfWeek?,
     val ended: Boolean,
+    /** Premiere day of [season] when it's still ahead (from TMDB's next episode), else null. */
+    val seasonStart: LocalDate? = null,
 )
 
 /**
@@ -59,7 +61,8 @@ class FollowRepository(
     suspend fun syncStale(maxAgeMs: Long = 12 * 60 * 60 * 1000L) {
         val now = System.currentTimeMillis()
         dao.getAll()
-            .filter { (it.tmdbSyncedAt ?: 0L) < now - maxAgeMs }
+            // A season that hasn't started and has no start date yet: check right away.
+            .filter { (it.tmdbSyncedAt ?: 0L) < now - maxAgeMs || (it.airedCount == 0 && it.seasonStart == null) }
             .forEach { show -> resultOf { sync(show, now) } }
     }
 
@@ -74,6 +77,13 @@ class FollowRepository(
                 airedCount = s.aired,
                 airedCountAsOf = nowMs,
                 seasonEpisodeCount = s.seasonEpisodes,
+                seasonStart = s.seasonStart,
+            )
+            // Same season, nothing out yet, and TMDB now knows the premiere date.
+            s.season == show.season && show.airedCount == 0 && show.seasonStart == null && s.seasonStart != null &&
+                show.airedAt(now) == 0 -> show.copy(
+                seasonStart = s.seasonStart,
+                seasonEpisodeCount = show.seasonEpisodeCount ?: s.seasonEpisodes,
             )
             // Same season: only learn its length if we didn't know it.
             s.season == show.season && show.seasonEpisodeCount == null && s.seasonEpisodes != null ->
@@ -99,5 +109,10 @@ internal fun DetailsDto.toSuggestion(): AiringSuggestion {
         ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
         ?.dayOfWeek
     val ended = next == null && status in setOf("Ended", "Canceled")
-    return AiringSuggestion(season, aired, seasonEpisodes, airDay, ended)
+    val today = LocalDate.now()
+    val seasonStart = next
+        ?.takeIf { aired == 0 && it.seasonNumber == season }
+        ?.airDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        ?.takeIf { it.isAfter(today) }
+    return AiringSuggestion(season, aired, seasonEpisodes, airDay, ended, seasonStart)
 }

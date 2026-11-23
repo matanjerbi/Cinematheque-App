@@ -195,8 +195,11 @@ private fun relativeDay(date: LocalDate, today: LocalDate): String {
 /** "עונה 2 · 6 פרקים · פרק 3 יצא ב־18.11 · פרק 4 מחר" */
 private fun IsraelShow.progressLabel(today: LocalDate): String {
     val parts = mutableListOf<String>()
-    season?.let { s -> parts += "עונה $s" + (seasonEpisodes?.let { " · $it פרקים" } ?: "") }
-    lastEpisode?.takeIf { it.season == season }?.let { e ->
+    season?.let { s ->
+        parts += "עונה $s" + (seasonEpisodes?.let { if (it == 1) " · פרק אחד" else " · $it פרקים" } ?: "")
+    }
+    // An "aired" date that is still ahead isn't aired.
+    lastEpisode?.takeIf { it.season == season && it.airDate?.isAfter(today) != true }?.let { e ->
         parts += "פרק ${e.episode} יצא" + (e.airDate?.let { " ${relativeDay(it, today)}" } ?: "")
     }
     nextEpisode?.let { e: EpisodeInfo ->

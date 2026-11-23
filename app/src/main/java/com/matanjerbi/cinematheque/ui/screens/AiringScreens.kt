@@ -1,6 +1,7 @@
 package com.matanjerbi.cinematheque.ui.screens
 
 import android.Manifest
+import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Intent
 import android.net.Uri
@@ -71,6 +72,7 @@ import com.matanjerbi.cinematheque.airing.AirSchedule
 import com.matanjerbi.cinematheque.airing.AiringSuggestion
 import com.matanjerbi.cinematheque.airing.airedAt
 import com.matanjerbi.cinematheque.airing.nextAiringAfter
+import com.matanjerbi.cinematheque.airing.notStartedAt
 import com.matanjerbi.cinematheque.airing.nowHere
 import com.matanjerbi.cinematheque.airing.schedule
 import com.matanjerbi.cinematheque.airing.seasonFinishedAt
@@ -86,6 +88,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -122,6 +125,16 @@ fun FollowedShowEntity.scheduleLabel(): String {
 fun FollowedShowEntity.countLabel(now: ZonedDateTime): String {
     val aired = airedAt(now)
     val total = seasonEpisodeCount
+    if (notStartedAt(now)) {
+        val start = seasonStart!!
+        val days = ChronoUnit.DAYS.between(now.toLocalDate(), start)
+        val whenLabel = when {
+            days == 1L -> "מחר"
+            days < 7L -> "ביום ${dayNames.getValue(start.dayOfWeek)} (${start.format(shortDate)})"
+            else -> "ב־${start.format(shortDate)}"
+        }
+        return "עונה $season · עוד לא עלתה, מתחילה $whenLabel" + (total?.let { " · $it פרקים" } ?: "")
+    }
     return "עונה $season · " + when {
         total != null && aired >= total -> "העונה הסתיימה, כל $total הפרקים בחוץ"
         aired == 0 -> "עוד לא יצא אף פרק" + (total?.let { " (מתוך $it)" } ?: "")
@@ -376,6 +389,7 @@ fun FollowDialog(
     var aired by remember { mutableStateOf(existing?.airedAt(now)?.toString() ?: "0") }
     var total by remember { mutableStateOf(existing?.seasonEpisodeCount?.toString() ?: "") }
     var reminders by remember { mutableStateOf(existing?.remindersOn ?: true) }
+    var start by remember { mutableStateOf(existing?.seasonStart?.takeIf { it.isAfter(now.toLocalDate()) }) }
     var confirmUnfollow by remember { mutableStateOf(false) }
 
     // Prefill from TMDB when it arrives (and again on every "update from TMDB").
@@ -385,6 +399,7 @@ fun FollowDialog(
         aired = s.aired.toString()
         total = s.seasonEpisodes?.toString() ?: ""
         if (days.isEmpty()) s.airDay?.let { days = setOf(it) }
+        s.seasonStart?.let { start = it }
     }
 
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
@@ -393,6 +408,7 @@ fun FollowDialog(
     val airedNum = aired.toIntOrNull()?.takeIf { it >= 0 }
     val totalNum = total.takeIf { it.isNotBlank() }?.toIntOrNull()?.takeIf { it > 0 }
     val totalValid = total.isBlank() || totalNum != null
+    val futureStart = start?.takeIf { it.isAfter(now.toLocalDate()) }
     val valid = days.isNotEmpty() && seasonNum != null && airedNum != null && totalValid
 
     AlertDialog(
@@ -423,6 +439,30 @@ fun FollowDialog(
                 NumberField(
                     "פרקים בעונה (לא חובה)", total, { total = it }, Modifier.fillMaxWidth(), isError = !totalValid,
                 )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("העונה מתחילה", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (futureStart == null) "כבר משודרת" else "עד אז לא נספרים פרקים",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    OutlinedButton(onClick = {
+                        val initial = futureStart ?: now.toLocalDate().plusDays(1)
+                        DatePickerDialog(
+                            context,
+                            { _, y, m, d ->
+                                start = LocalDate.of(y, m + 1, d)
+                                aired = "0"
+                            },
+                            initial.year, initial.monthValue - 1, initial.dayOfMonth,
+                        ).apply { datePicker.minDate = System.currentTimeMillis() }.show()
+                    }) { Text(futureStart?.format(DateTimeFormatter.ofPattern("d.M.yyyy")) ?: "בחר תאריך") }
+                    if (futureStart != null) {
+                        TextButton(onClick = { start = null }) { Text("נקה") }
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     when {
                         loadingSuggestion -> CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -460,11 +500,13 @@ fun FollowDialog(
                         airMinuteOfDay = minute,
                         remindersOn = reminders,
                         season = seasonNum ?: 1,
-                        airedCount = (airedNum ?: 0).let { a -> totalNum?.let { minOf(a, it) } ?: a },
+                        // A season that hasn't started has nothing out yet.
+                        airedCount = if (futureStart != null) 0 else (airedNum ?: 0).let { a -> totalNum?.let { minOf(a, it) } ?: a },
                         airedCountAsOf = nowMs,
                         seasonEpisodeCount = totalNum,
                         tmdbSyncedAt = if (suggestion != null) nowMs else existing?.tmdbSyncedAt,
                         createdAt = existing?.createdAt ?: nowMs,
+                        seasonStart = futureStart,
                     )
                 )
                 if (reminders && Build.VERSION.SDK_INT >= 33) {

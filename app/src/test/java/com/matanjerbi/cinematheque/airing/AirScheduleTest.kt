@@ -68,4 +68,27 @@ class AirScheduleTest {
         assertNull(show.nextAiringAfter(at(2026, 11, 4, 21)))
         assertEquals(at(2026, 10, 28, 21), show.nextAiringAfter(at(2026, 10, 26, 0)))
     }
+
+    /** Followed on Monday 23.11, airs Tuesdays 21:00, but the season premieres Tuesday 1.12. */
+    @Test fun nothingCountsBeforeSeasonStart() {
+        val show = FollowedShowEntity(
+            titleId = 2,
+            airDays = AirSchedule.toMask(setOf(DayOfWeek.TUESDAY)),
+            airMinuteOfDay = 21 * 60,
+            airedCount = 0,
+            airedCountAsOf = at(2026, 11, 23, 11).toInstant().toEpochMilli(),
+            seasonEpisodeCount = 10,
+            seasonStart = java.time.LocalDate.of(2026, 12, 1),
+        )
+        // Tomorrow's Tuesday slot is before the premiere: not an episode, not the "next".
+        assertEquals(0, show.airedAt(at(2026, 11, 24, 22)))
+        assertTrue(show.notStartedAt(at(2026, 11, 24, 22)))
+        assertEquals(at(2026, 12, 1, 21), show.nextAiringAfter(at(2026, 11, 23, 11)))
+        // Premiere night and the week after.
+        assertEquals(0, show.airedAt(at(2026, 12, 1, 20, 59)))
+        assertEquals(1, show.airedAt(at(2026, 12, 1, 21)))
+        assertFalse(show.notStartedAt(at(2026, 12, 1, 0)))
+        assertEquals(at(2026, 12, 8, 21), show.nextAiringAfter(at(2026, 12, 1, 21)))
+        assertEquals(2, show.airedAt(at(2026, 12, 8, 21)))
+    }
 }
